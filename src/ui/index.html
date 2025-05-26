@@ -1,4 +1,171 @@
-[Previous HTML content remains the same until the progress section]
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bulk Messenger</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .country-select {
+            width: 250px !important;
+        }
+        .logout-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .select2-container .select2-selection--single {
+            height: 38px !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 38px !important;
+        }
+        .country-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .country-flag {
+            font-size: 1.2em;
+            margin-right: 4px;
+        }
+        .import-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .import-info {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        #progressBar {
+            transition: width 0.5s ease-in-out;
+        }
+        .pause-timer {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- Botón de Cerrar Sesión -->
+        <div id="logoutButton" class="logout-button d-none">
+            <button onclick="logout()" class="btn btn-danger">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+        </div>
+
+        <!-- Sección de Autenticación -->
+        <div id="authSection" class="text-center mb-5">
+            <h2 class="mb-4">WhatsApp Bulk Messenger</h2>
+            <div id="qrContainer" class="d-none">
+                <p class="mb-3">Escanea el código QR con WhatsApp para iniciar sesión:</p>
+                <div id="qrCode" class="mb-3"></div>
+            </div>
+            <div id="authenticatedInfo" class="d-none">
+                <div class="alert alert-success">
+                    ✅ WhatsApp conectado y listo para enviar mensajes
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Gestión de Mensajes -->
+        <div id="messageManagement" class="d-none">
+            <!-- Mensaje a enviar -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Mensaje a Enviar</h5>
+                    <div class="form-group">
+                        <textarea id="messageText" class="form-control" rows="4" placeholder="Escribe el mensaje que se enviará a todos los números"></textarea>
+                    </div>
+                    <div class="mt-3">
+                        <button onclick="saveMessage()" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Mensaje
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Importar y agregar números -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Gestión de Números</h5>
+                    
+                    <!-- Sección de importación -->
+                    <div class="import-section">
+                        <div class="file-input-wrapper">
+                            <button class="btn btn-success">
+                                <i class="fas fa-file-excel"></i> Importar Excel
+                            </button>
+                            <input type="file" id="excelFile" accept=".xls,.xlsx" onchange="importExcel(this)">
+                        </div>
+                        <div class="import-info">
+                            Formato: Una columna con números de 10 dígitos
+                        </div>
+                    </div>
+
+                    <!-- Agregar número manualmente -->
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="phone-input-group">
+                                <select id="countryCode" class="form-select country-select">
+                                    <!-- Se llenará dinámicamente -->
+                                </select>
+                                <input type="text" id="newNumber" class="form-control" placeholder="Número telefónico (ej: 3503616055)">
+                                <button onclick="addNumber()" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de números -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Lista de Números</h5>
+                    <div class="mb-3">
+                        <button onclick="removeAllNumbers()" class="btn btn-danger">
+                            <i class="fas fa-trash-alt"></i> Eliminar Todo
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="numbersList">
+                                <!-- Los números se cargarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <!-- Progreso de envío -->
             <div id="sendProgress" class="card mb-4 d-none">
@@ -30,10 +197,352 @@
                 </div>
             </div>
 
-[Previous HTML content remains the same until the script section]
+            <!-- Botones de acción -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <button onclick="saveChanges()" class="btn btn-success w-100">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button onclick="sendMessages()" class="btn btn-primary w-100" id="sendButton">
+                        <i class="fas fa-paper-plane"></i> Enviar Mensajes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script>
-[Previous JavaScript content remains the same until the sendMessages function]
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+    <script>
+        let numbers = [];
+        let message = '';
+        let checkAuthInterval;
+        let countries = [];
+        let currentPauseTimer;
+
+        async function importExcel(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const response = await fetch('/api/import-contacts', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    numbers = data.numbers;
+                    updateNumbersList();
+                    alert(`Se importaron ${data.imported} números exitosamente`);
+                } else {
+                    alert(data.error || 'Error al importar números');
+                }
+            } catch (error) {
+                console.error('Error al importar:', error);
+                alert('Error al importar números');
+            }
+
+            input.value = '';
+        }
+
+        async function logout() {
+            if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    document.getElementById('qrContainer').classList.add('d-none');
+                    document.getElementById('authenticatedInfo').classList.add('d-none');
+                    document.getElementById('messageManagement').classList.add('d-none');
+                    document.getElementById('logoutButton').classList.add('d-none');
+                    checkAuthInterval = setInterval(checkAuthStatus, 1000);
+                } else {
+                    alert('Error al cerrar sesión');
+                }
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+                alert('Error al cerrar sesión');
+            }
+        }
+
+        async function loadCountries() {
+            try {
+                const response = await fetch('https://restcountries.com/v3.1/all');
+                const data = await response.json();
+
+                const validCountries = data.filter(country =>
+                    country.idd && country.idd.root && Array.isArray(country.idd.suffixes) && country.idd.suffixes.length > 0
+                );
+
+                countries = validCountries;
+
+                const countrySelect = $('#countryCode');
+
+                const sortedCountries = countries.sort((a, b) => {
+                    if (a.cca2 === 'CO') return -1;
+                    if (b.cca2 === 'CO') return 1;
+                    return a.name.common.localeCompare(b.name.common);
+                });
+
+                sortedCountries.forEach(country => {
+                    const root = country.idd.root || '';
+                    const suffix = country.idd.suffixes?.[0] || '';
+                    const code = root + suffix;
+                    const cleanCode = code.replace('+', '');
+                    const name = country.name?.common || 'Desconocido';
+                    const flag = country.flag || '';
+
+                    const option = new Option(
+                        `${flag} ${name} (${code})`,
+                        cleanCode
+                    );
+
+                    $(option).data('country', {
+                        flag: flag,
+                        name: name,
+                        code: cleanCode
+                    });
+
+                    countrySelect.append(option);
+                });
+
+                countrySelect.select2({
+                    theme: 'bootstrap-5',
+                    templateResult: formatCountryOption,
+                    templateSelection: formatCountrySelection
+                });
+
+                countrySelect.val('57').trigger('change');
+            } catch (error) {
+                console.error('Error al cargar países:', error);
+                alert('Error al cargar la lista de países');
+            }
+        }
+
+        function formatCountryOption(country) {
+            if (!country.id) return country.text;
+            const data = $(country.element).data('country');
+            if (!data) return country.text;
+
+            return $(`
+                <div class="country-option">
+                    <span class="country-flag">${data.flag}</span>
+                    <span>${data.name}</span>
+                    <span class="text-muted">(+${data.code})</span>
+                </div>
+            `);
+        }
+
+        function formatCountrySelection(country) {
+            if (!country.id) return country.text;
+            const data = $(country.element).data('country');
+            if (!data) return country.text;
+
+            return $(`
+                <div class="country-option">
+                    <span class="country-flag">${data.flag}</span>
+                    <span>+${data.code}</span>
+                </div>
+            `);
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth-status');
+                const data = await response.json();
+                
+                if (data.isAuthenticated) {
+                    document.getElementById('qrContainer').classList.add('d-none');
+                    document.getElementById('authenticatedInfo').classList.remove('d-none');
+                    document.getElementById('messageManagement').classList.remove('d-none');
+                    document.getElementById('logoutButton').classList.remove('d-none');
+                    clearInterval(checkAuthInterval);
+                    await loadConfig();
+                } else if (data.qrCode) {
+                    document.getElementById('qrContainer').classList.remove('d-none');
+                    document.getElementById('authenticatedInfo').classList.add('d-none');
+                    document.getElementById('messageManagement').classList.add('d-none');
+                    document.getElementById('logoutButton').classList.add('d-none');
+                    displayQR(data.qrCode);
+                }
+            } catch (error) {
+                console.error('Error al verificar estado:', error);
+            }
+        }
+
+        function displayQR(qrCode) {
+            const typeNumber = 0;
+            const errorCorrectionLevel = 'L';
+            const qr = qrcode(typeNumber, errorCorrectionLevel);
+            qr.addData(qrCode);
+            qr.make();
+            document.getElementById('qrCode').innerHTML = qr.createImgTag(8);
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                numbers = config.numbers || [];
+                message = config.message || '';
+                document.getElementById('messageText').value = message;
+                updateNumbersList();
+            } catch (error) {
+                console.error('Error al cargar configuración:', error);
+            }
+        }
+
+        function updateNumbersList() {
+            const numbersList = document.getElementById('numbersList');
+            numbersList.innerHTML = '';
+            
+            numbers.forEach((number, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${number}</td>
+                    <td>
+                        <button onclick="removeNumber(${index})" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                numbersList.appendChild(row);
+            });
+        }
+
+        async function saveMessage() {
+            const messageText = document.getElementById('messageText').value.trim();
+            if (!messageText) {
+                alert('Por favor ingrese un mensaje válido');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: messageText,
+                        numbers: numbers
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Mensaje guardado exitosamente');
+                    message = messageText;
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al guardar el mensaje');
+                }
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                alert('Error al guardar el mensaje');
+            }
+        }
+
+        function addNumber() {
+            const countryCode = $('#countryCode').val();
+            const phoneNumber = document.getElementById('newNumber').value.trim();
+            
+            if (!phoneNumber) {
+                alert('Por favor ingrese un número válido');
+                return;
+            }
+
+            const cleanNumber = phoneNumber.replace(/\D/g, '');
+            const fullNumber = countryCode + cleanNumber;
+
+            if (!/^[0-9]{12}$/.test(fullNumber)) {
+                alert('El número debe tener 10 dígitos (sin contar el código de país)');
+                return;
+            }
+
+            if (numbers.includes(fullNumber)) {
+                alert('Este número ya existe en la lista');
+                return;
+            }
+
+            numbers.push(fullNumber);
+            document.getElementById('newNumber').value = '';
+            updateNumbersList();
+        }
+
+        async function removeNumber(index) {
+            numbers.splice(index, 1);
+            updateNumbersList();
+            await saveChanges();
+        }
+
+        async function removeAllNumbers() {
+            if (!confirm('¿Estás seguro de eliminar todos los números?')) {
+                return;
+            }
+            
+            numbers = [];
+            updateNumbersList();
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        numbers: numbers
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Todos los números han sido eliminados');
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al eliminar los números');
+                }
+            } catch (error) {
+                console.error('Error al eliminar números:', error);
+                alert('Error al eliminar los números');
+            }
+        }
+
+        async function saveChanges() {
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        numbers: numbers
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Configuración guardada exitosamente');
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al guardar la configuración');
+                }
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                alert('Error al guardar la configuración');
+            }
+        }
 
         async function cancelSending() {
             if (!confirm('¿Estás seguro de que deseas cancelar el envío de mensajes?')) {
@@ -183,7 +692,33 @@
             `;
         }
 
-[Rest of the JavaScript code remains the same]
-</script>
+        function startPauseCountdown(endTime) {
+            if (currentPauseTimer) {
+                clearInterval(currentPauseTimer);
+            }
+
+            const pauseTimerElement = document.getElementById('pauseTimer').querySelector('.pause-timer');
+            
+            currentPauseTimer = setInterval(() => {
+                const now = new Date().getTime();
+                const timeLeft = endTime - now;
+
+                if (timeLeft <= 0) {
+                    clearInterval(currentPauseTimer);
+                    document.getElementById('pauseTimer').classList.add('d-none');
+                } else {
+                    const seconds = Math.ceil(timeLeft / 1000);
+                    pauseTimerElement.innerHTML = `${seconds} segundos restantes`;
+                }
+            }, 1000);
+        }
+
+        // Inicializar
+        $(document).ready(() => {
+            loadCountries();
+            checkAuthStatus();
+            checkAuthInterval = setInterval(checkAuthStatus, 1000);
+        });
+    </script>
 </body>
 </html>
