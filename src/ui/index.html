@@ -1,0 +1,189 @@
+[Previous HTML content remains the same until the progress section]
+
+            <!-- Progreso de envío -->
+            <div id="sendProgress" class="card mb-4 d-none">
+                <div class="card-body">
+                    <h5 class="card-title">Progreso de Envío</h5>
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            <span id="progressText">0%</span>
+                        </div>
+                    </div>
+                    <div id="progressStatus" class="text-center mb-3 fw-bold">
+                        <!-- Status text will be updated dynamically -->
+                    </div>
+                    <div id="pauseTimer" class="alert alert-info text-center d-none">
+                        <i class="fas fa-pause-circle"></i> 
+                        <span class="pause-timer">
+                            <!-- Pause countdown will be shown here -->
+                        </span>
+                    </div>
+                    <div id="batchInfo" class="mt-3">
+                        <!-- Batch information will be shown here -->
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="cancelButton" onclick="cancelSending()" class="btn btn-danger">
+                            <i class="fas fa-stop-circle"></i> Cancelar Envío
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+[Previous HTML content remains the same until the script section]
+
+<script>
+[Previous JavaScript content remains the same until the sendMessages function]
+
+        async function cancelSending() {
+            if (!confirm('¿Estás seguro de que deseas cancelar el envío de mensajes?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cancel-messages', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cancelar el envío');
+                }
+
+                document.getElementById('progressStatus').innerHTML = `
+                    <i class="fas fa-stop-circle"></i> 
+                    Cancelando envío...
+                `;
+                document.getElementById('cancelButton').disabled = true;
+
+            } catch (error) {
+                console.error('Error al cancelar envío:', error);
+                alert('Error al cancelar el envío de mensajes');
+            }
+        }
+
+        async function sendMessages() {
+            if (!confirm('¿Estás seguro de enviar los mensajes a todos los números?')) {
+                return;
+            }
+
+            try {
+                // Deshabilitar botón de envío
+                document.getElementById('sendButton').disabled = true;
+                
+                // Mostrar sección de progreso
+                const progressSection = document.getElementById('sendProgress');
+                progressSection.classList.remove('d-none');
+                
+                // Resetear elementos de progreso
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('progressText').textContent = '0%';
+                document.getElementById('progressStatus').textContent = 'Iniciando envío...';
+                document.getElementById('pauseTimer').classList.add('d-none');
+                document.getElementById('batchInfo').innerHTML = '';
+                document.getElementById('cancelButton').disabled = false;
+
+                const response = await fetch('/api/send-messages', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al iniciar el envío de mensajes');
+                }
+
+                // Escuchar eventos de progreso
+                const eventSource = new EventSource('/api/message-progress');
+                
+                eventSource.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    updateProgress(data);
+
+                    if (data.status === 'completed' || data.status === 'cancelled') {
+                        eventSource.close();
+                        document.getElementById('sendButton').disabled = false;
+                        document.getElementById('cancelButton').disabled = true;
+                        
+                        if (data.status === 'cancelled') {
+                            alert(`Envío cancelado\nMensajes enviados: ${data.successCount}\nErrores: ${data.errorCount}`);
+                        } else {
+                            alert(`Envío completado\nMensajes enviados: ${data.successCount}\nErrores: ${data.errorCount}`);
+                        }
+                        
+                        progressSection.classList.add('d-none');
+                    }
+                };
+
+                eventSource.onerror = function() {
+                    eventSource.close();
+                    document.getElementById('sendButton').disabled = false;
+                    document.getElementById('cancelButton').disabled = true;
+                    progressSection.classList.add('d-none');
+                    alert('Error en la conexión de eventos de progreso');
+                };
+
+            } catch (error) {
+                console.error('Error al enviar mensajes:', error);
+                alert('Error al enviar los mensajes');
+                document.getElementById('sendButton').disabled = false;
+                document.getElementById('cancelButton').disabled = true;
+                document.getElementById('sendProgress').classList.add('d-none');
+            }
+        }
+
+        function updateProgress(data) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const progressStatus = document.getElementById('progressStatus');
+            const pauseTimer = document.getElementById('pauseTimer');
+            const batchInfo = document.getElementById('batchInfo');
+
+            // Actualizar barra de progreso
+            const progress = Math.round((data.currentNumber / data.totalNumbers) * 100);
+            progressBar.style.width = `${progress}%`;
+            progressBar.setAttribute('aria-valuenow', progress);
+            progressText.textContent = `${progress}%`;
+
+            // Actualizar estado según el status
+            if (data.status === 'sending') {
+                progressStatus.innerHTML = `
+                    <i class="fas fa-paper-plane"></i> 
+                    Enviando mensaje ${data.currentNumber} de ${data.totalNumbers}
+                `;
+                pauseTimer.classList.add('d-none');
+            } else if (data.status === 'paused') {
+                progressStatus.innerHTML = `
+                    <i class="fas fa-pause"></i> 
+                    Pausa después del lote ${data.currentBatch}
+                `;
+                pauseTimer.classList.remove('d-none');
+                startPauseCountdown(data.pauseEndTime);
+            } else if (data.status === 'cancelled') {
+                progressStatus.innerHTML = `
+                    <i class="fas fa-stop-circle"></i> 
+                    Envío cancelado
+                `;
+                pauseTimer.classList.add('d-none');
+            }
+
+            // Actualizar información del lote
+            batchInfo.innerHTML = `
+                <div class="row text-center">
+                    <div class="col">
+                        <h6>Lote actual</h6>
+                        <p class="mb-0">${data.currentBatch} de ${data.totalBatches}</p>
+                    </div>
+                    <div class="col">
+                        <h6>Enviados</h6>
+                        <p class="mb-0 text-success">${data.successCount}</p>
+                    </div>
+                    <div class="col">
+                        <h6>Errores</h6>
+                        <p class="mb-0 text-danger">${data.errorCount}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+[Rest of the JavaScript code remains the same]
+</script>
+</body>
+</html>

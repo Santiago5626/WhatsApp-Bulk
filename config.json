@@ -1,0 +1,16 @@
+{
+  "numAccounts": 1,
+  "numbers": [
+    "573011330192",
+    "573002334694",
+    "573163135904",
+    "573235771099",
+    "573117185864",
+    "573106833024"
+  ],
+  "message": "Mensaje de prueba para mensajeria masiva por whatsapp",
+  "qrTimeoutMs": 60000,
+  "delayBetweenMessagesMs": 1000,
+  "messagesBeforePause": 5,
+  "pauseDurationMinutes": 1
+}
